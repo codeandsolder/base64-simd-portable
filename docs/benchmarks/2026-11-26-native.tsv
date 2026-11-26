@@ -1,0 +1,21 @@
+operation	input_bytes	reference_GB/s	autovec_GB/s	paired_ratio
+encode vs base64-simd	120	8.302	4.869	0.572
+encode vs base64	120	1.837	4.824	2.652
+decode vs base64-simd	160	7.969	6.227	0.781
+decode vs base64	160	3.944	6.105	1.540
+encode vs base64-simd	4096	18.994	11.606	0.615
+encode vs base64	4096	13.424	11.586	0.854
+decode vs base64-simd	5464	22.057	8.152	0.369
+decode vs base64	5464	14.609	8.103	0.563
+encode vs base64-simd	65536	19.741	12.229	0.620
+encode vs base64	65536	14.589	12.154	0.828
+decode vs base64-simd	87384	22.859	8.507	0.375
+decode vs base64	87384	15.237	8.586	0.572
+encode vs base64-simd	1048576	18.168	11.553	0.625
+encode vs base64	1048576	13.776	11.551	0.843
+decode vs base64-simd	1398104	22.026	8.302	0.382
+decode vs base64	1398104	15.151	8.370	0.555
+encode vs base64-simd	8388608	6.272	6.081	0.967
+encode vs base64	8388608	6.101	6.118	0.994
+decode vs base64-simd	11184812	8.486	6.917	0.812
+decode vs base64	11184812	7.941	6.829	0.858
