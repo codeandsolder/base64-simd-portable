@@ -13,7 +13,7 @@ const COMPILED_VECTOR_SUPPORT: bool = cfg!(any(
 #[cfg(all(feature = "std", any(target_arch = "x86", target_arch = "x86_64")))]
 #[target_feature(enable = "avx2")]
 fn encode_avx2<const URL: bool>(input: &[u8], output: &mut [u8]) {
-    encode_vectorized::<URL>(input, output)
+    encode_vectorized::<URL>(input, output);
 }
 
 #[cfg(all(feature = "std", any(target_arch = "x86", target_arch = "x86_64")))]

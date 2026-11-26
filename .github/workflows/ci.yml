@@ -13,7 +13,7 @@ concurrency:
   cancel-in-progress: true
 jobs:
   tests:
-    uses: codeandsolder/ci-workflows/.github/workflows/rust-sccache.yml@169c8823c1bb0f5e5645ad813b441d605d49d5bb # main
+    uses: codeandsolder/ci-workflows/.github/workflows/rust-sccache.yml@f2b37a67bfe379e8db96731f97ad3c345065b168 # main
     with:
       strict-suites: |
         [{"name":"all-features","cargo":["--locked","--workspace","--all-targets","--all-features"],"allow-test-panics":true}]
@@ -30,7 +30,7 @@ jobs:
     name: CI merge gate
     if: ${{ always() }}
     needs: [tests]
-    uses: codeandsolder/ci-workflows/.github/workflows/merge-gate.yml@169c8823c1bb0f5e5645ad813b441d605d49d5bb # main
+    uses: codeandsolder/ci-workflows/.github/workflows/merge-gate.yml@f2b37a67bfe379e8db96731f97ad3c345065b168 # main
     with:
       needs-json: ${{ toJSON(needs) }}
       expected-results: |
