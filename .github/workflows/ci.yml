@@ -4,6 +4,7 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+  merge_group:
   workflow_dispatch:
 permissions:
   contents: read
@@ -25,3 +26,13 @@ jobs:
         cargo test --locked --workspace --release
         cargo check --locked --lib --target wasm32-unknown-unknown
         cargo --config 'target.wasm32-unknown-unknown.rustflags=["-C","target-feature=+simd128"]' check --locked --lib --target wasm32-unknown-unknown
+
+  merge-gate:
+    name: CI merge gate
+    if: ${{ always() }}
+    needs: [strict-rust, tests]
+    uses: codeandsolder/ci-workflows/.github/workflows/merge-gate.yml@b418cf305344819418335c93f9b3f26f7cc5d17c # main
+    with:
+      needs-json: ${{ toJSON(needs) }}
+      expected-results: |
+        [["strict-rust","success"],["tests","success"]]
