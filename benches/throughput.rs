@@ -75,8 +75,11 @@ fn main() {
             },
             || {
                 black_box(
-                    base64_simd_portable::encode::<false, true>(black_box(&data), black_box(&mut a))
-                        .unwrap(),
+                    base64_simd_portable::encode::<false, true>(
+                        black_box(&data),
+                        black_box(&mut a),
+                    )
+                    .unwrap(),
                 );
             },
         );
@@ -93,8 +96,11 @@ fn main() {
             },
             || {
                 black_box(
-                    base64_simd_portable::encode::<false, true>(black_box(&data), black_box(&mut a))
-                        .unwrap(),
+                    base64_simd_portable::encode::<false, true>(
+                        black_box(&data),
+                        black_box(&mut a),
+                    )
+                    .unwrap(),
                 );
             },
         );

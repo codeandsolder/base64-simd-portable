@@ -13,3 +13,12 @@ base64-simd = "=0.8.0"
 
 [package.metadata.rust-skills2]
 allow-test-panics = true
+
+[features]
+default = ["std", "portable-simd"]
+portable-simd = []
+std = []
+
+[[bench]]
+name = "throughput"
+harness = false

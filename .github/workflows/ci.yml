@@ -4,6 +4,7 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+  merge_group:
   workflow_dispatch:
 permissions:
   contents: read
@@ -11,17 +12,26 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 jobs:
-  strict-rust:
-    uses: codeandsolder/rust-skills2/.github/workflows/strict-rust.yml@b793c63482d7663a81aae726887e316958f8a13c # main
-    with:
-      allow-test-panics: true
   tests:
-    uses: codeandsolder/ci-workflows/.github/workflows/rust-sccache.yml@cef9ed17f08f76279ca9faa66faee1ceccc50a97 # main
+    uses: codeandsolder/ci-workflows/.github/workflows/rust-sccache.yml@f2b37a67bfe379e8db96731f97ad3c345065b168 # main
     with:
-      test-impact-mode: none
+      strict-suites: |
+        [{"name":"all-features","cargo":["--locked","--workspace","--all-targets","--all-features"],"allow-test-panics":true}]
       rust-targets: wasm32-unknown-unknown
       command: |
         cargo test --locked --workspace
         cargo test --locked --workspace --release
-        cargo check --locked --lib --target wasm32-unknown-unknown
-        cargo --config 'target.wasm32-unknown-unknown.rustflags=["-C","target-feature=+simd128"]' check --locked --lib --target wasm32-unknown-unknown
+        cargo test --locked --workspace --release --no-default-features
+        cargo test --locked --workspace --release --no-default-features --features portable-simd
+        cargo check --locked --lib --no-default-features --target wasm32-unknown-unknown
+        cargo --config 'target.wasm32-unknown-unknown.rustflags=["-C","target-feature=+simd128"]' check --locked --lib --no-default-features --features portable-simd --target wasm32-unknown-unknown
+
+  merge-gate:
+    name: CI merge gate
+    if: ${{ always() }}
+    needs: [tests]
+    uses: codeandsolder/ci-workflows/.github/workflows/merge-gate.yml@f2b37a67bfe379e8db96731f97ad3c345065b168 # main
+    with:
+      needs-json: ${{ toJSON(needs) }}
+      expected-results: |
+        [["tests","success"]]
