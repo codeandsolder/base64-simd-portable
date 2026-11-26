@@ -1,15 +1,27 @@
 //! Base64 buffer codecs with portable, compiler-vectorized kernels.
 #![cfg_attr(not(feature = "std"), no_std)]
-#![cfg_attr(feature = "portable-simd", feature(portable_simd))]
+#![cfg_attr(feature = "portable-simd", feature(portable_simd, core_intrinsics))]
+#![cfg_attr(
+    feature = "portable-simd",
+    expect(
+        internal_features,
+        reason = "Portable dynamic lane extraction is required for register lookup; swizzle_dyn uses the prebuilt core target features."
+    )
+)]
 #![deny(unsafe_op_in_unsafe_fn)]
 #![cfg_attr(
-    not(all(feature = "std", any(target_arch = "x86", target_arch = "x86_64"))),
+    not(any(
+        feature = "portable-simd",
+        all(feature = "std", any(target_arch = "x86", target_arch = "x86_64"))
+    )),
     forbid(unsafe_code)
 )]
 #[cfg(feature = "portable-simd")]
+mod lookup;
+#[cfg(feature = "portable-simd")]
 mod vector;
 #[cfg(feature = "portable-simd")]
-use vector::decode_block;
+use vector::encode_vectorized;
 
 mod dispatch;
 
@@ -65,6 +77,7 @@ const fn alphabet<const URL: bool>() -> &'static [u8; 64] {
 
 // The values entering this function are in 0..64; signed comparisons let LLVM
 // use native byte comparisons on architectures without unsigned byte compares.
+#[cfg(not(feature = "portable-simd"))]
 #[inline]
 const fn ascii<const URL: bool>(x: u8) -> u8 {
     let base = if x.cast_signed() > 51 {
@@ -84,6 +97,7 @@ const fn ascii<const URL: bool>(x: u8) -> u8 {
 
 // Fixed shuffle gathers [b,a,c,b] for each input triplet. LLVM recognizes
 // the byte rearrangement as a vector shuffle instead of individual gathers.
+#[cfg(not(feature = "portable-simd"))]
 #[inline]
 const fn shuffle(a: &[u8; 32]) -> [u8; 32] {
     [
@@ -97,6 +111,7 @@ const fn shuffle(a: &[u8; 32]) -> [u8; 32] {
 // preventing LLVM from widening 16-bit lanes into variable 32-bit shifts.
 // 65*masked and 1025*masked have the same high halves as 64 and 1024;
 // adding 0x1000 to 16 has no effect on the low half for multiples of 16.
+#[cfg(not(feature = "portable-simd"))]
 #[inline]
 fn expand(a: &[u8; 32]) -> [u8; 32] {
     const HIGH_MASK: [u16; 16] = [
@@ -125,19 +140,19 @@ fn expand(a: &[u8; 32]) -> [u8; 32] {
     core::array::from_fn(|i| v[i / 2].to_le_bytes()[i % 2])
 }
 
+#[cfg(not(feature = "portable-simd"))]
 #[inline(always)]
 #[expect(
     clippy::inline_always,
     reason = "The dispatch wrapper must compile this whole kernel for its enabled target features."
 )]
-fn encode_vectorized<const URL: bool>(input: &[u8], output: &mut [u8]) -> Result<(), Error> {
+fn encode_vectorized<const URL: bool>(input: &[u8], output: &mut [u8]) {
     debug_assert_eq!(input.len() % 3, 0);
     debug_assert_eq!(output.len(), input.len() / 3 * 4);
     let mut src = input;
     let mut dst = output;
-    while let Some(a) = src.first_chunk::<32>() {
+    while let (Some(a), Some(b)) = (src.first_chunk::<32>(), dst.first_chunk_mut::<32>()) {
         let v = expand(a);
-        let b = dst.first_chunk_mut::<32>().ok_or(Error::Output)?;
         for i in 0..32 {
             b[i] = ascii::<URL>(v[i]);
         }
@@ -145,7 +160,6 @@ fn encode_vectorized<const URL: bool>(input: &[u8], output: &mut [u8]) -> Result
         dst = &mut dst[32..];
     }
     encode_scalar::<URL>(src, dst);
-    Ok(())
 }
 
 fn encode_scalar<const URL: bool>(src: &[u8], dst: &mut [u8]) {
@@ -178,7 +192,7 @@ pub fn encode<const URL: bool, const PAD: bool>(
     let dst = output.get_mut(..n).ok_or(Error::Output)?;
     let len = input.len() / 3 * 3;
     let (head, tail) = dst.split_at_mut(len / 3 * 4);
-    dispatch::encode::<URL>(&input[..len], head)?;
+    dispatch::encode::<URL>(&input[..len], head);
     let alphabet = alphabet::<URL>();
     match &input[len..] {
         [] => {}
@@ -272,6 +286,13 @@ fn decode_block<const URL: bool>(input: &[u8; 32]) -> Option<[u8; 24]> {
     reason = "The dispatch wrapper must compile this whole kernel for its enabled target features."
 )]
 fn decode_vectorized<const URL: bool>(mut src: &[u8], mut dst: &mut [u8]) -> Result<(), Error> {
+    #[cfg(feature = "portable-simd")]
+    while let (Some(a), Some(b)) = (src.first_chunk::<32>(), dst.first_chunk_mut::<28>()) {
+        vector::decode_store::<URL>(a, b).ok_or(Error::Character)?;
+        src = &src[32..];
+        dst = &mut dst[24..];
+    }
+    #[cfg(not(feature = "portable-simd"))]
     while let Some(a) = src.first_chunk::<32>() {
         *dst.first_chunk_mut::<24>().ok_or(Error::Output)? =
             decode_block::<URL>(a).ok_or(Error::Character)?;
