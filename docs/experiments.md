@@ -1,0 +1,7 @@
+# Compiler-guided experiments
+
+Initial implementation and measurements (nightly-2026-11-22, LLVM 23.1.6, Ryzen 9 4900HS): at 64 KiB encoding 12.33 GB/s vs base64 0.23.1 14.69 and base64-simd 0.8.0 19.84; at 8 MiB roughly equal. Decoder 3.37 GB/s vs 23.51 for base64-simd. Numbers are historical, not acceptance thresholds. Full paired timings and original source/disassembly archived on Acer under `/home/jan/scratch/js-redox-dependency-audit-20261126/base64-structured-evidence.tar.gz`.
+
+Use fixed byte shuffle and mathematically equivalent non-power-of-two multipliers to preserve the high/low halves of packed 16-bit products; LLVM emits vpshufb/vpmulhuw/vpmullw. Using exact power-of-two factors instead caused widening and variable shifts. `-mul-constant-optimization=false` did not change the disassembly. Related upstream issue: https://github.com/llvm/llvm-project/issues/140418. Same source built for wasm32 with +simd128 emits SIMD operations, not yet measured on WASM. See `src/lib.rs` for the arithmetic proof.
+
+Remaining work: decoder inverse packing and validation, compare scalar auto-vectorization with portable SIMD, baseline fallback and CPU dispatch, codegen and runtime tests across target features. Follow rust-skills2 opt-simd-portable, opt-target-cpu, opt-bounds-check, perf-array-windows, num-overflow-explicit and perf-benchmark-regression. Do not introduce architecture intrinsics; preserve strict source policy.

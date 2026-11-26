@@ -1,0 +1,15 @@
+[package]
+name = "base64-simd-portable"
+version = "0.1.0"
+edition = "2024"
+publish = false
+license = "MIT"
+description = "Portable Base64 with compiler-vectorized kernels"
+repository = "https://github.com/codeandsolder/base64-simd-portable"
+
+[dev-dependencies]
+base64 = "=0.23.1"
+base64-simd = "=0.8.0"
+
+[package.metadata.rust-skills2]
+allow-test-panics = true

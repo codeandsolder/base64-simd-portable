@@ -1,0 +1,27 @@
+name: CI
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+jobs:
+  strict-rust:
+    uses: codeandsolder/rust-skills2/.github/workflows/strict-rust.yml@b793c63482d7663a81aae726887e316958f8a13c # main
+    with:
+      allow-test-panics: true
+  tests:
+    uses: codeandsolder/ci-workflows/.github/workflows/rust-sccache.yml@cef9ed17f08f76279ca9faa66faee1ceccc50a97 # main
+    with:
+      test-impact-mode: none
+      rust-targets: wasm32-unknown-unknown
+      command: |
+        cargo test --locked --workspace
+        cargo test --locked --workspace --release
+        cargo check --locked --lib --target wasm32-unknown-unknown
+        cargo --config 'target.wasm32-unknown-unknown.rustflags=["-C","target-feature=+simd128"]' check --locked --lib --target wasm32-unknown-unknown
