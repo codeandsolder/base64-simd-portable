@@ -1,0 +1,5 @@
+
+[[allow_overlap]]
+package = "base64-simd-portable"
+providers = ["base64", "base64-simd"]
+reason = "Independent scalar and SIMD reference codecs for benchmark and differential testing; neither is a production dependency."
